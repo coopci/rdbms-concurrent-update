@@ -22,7 +22,7 @@ public class Main {
     // insert into t_counter(`name`, counter) values ('name1', 1);
 
 
-    public static void runTest(String drivername, String connUrl, String username, String password) throws SQLException {
+    public static void runTest(String drivername, String connUrl, String username, String password, final int updates) throws SQLException {
     	Date start  = new Date();
         try {
             Class.forName(drivername);
@@ -32,7 +32,7 @@ public class Main {
                 @Override
                 public void run() {
                     try {
-                        doUpdate("thread1", 10000, connUrl, username, password);
+                        doUpdate("thread1", updates, connUrl, username, password);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -45,7 +45,7 @@ public class Main {
                 @Override
                 public void run() {
                     try {
-                        doUpdate("thread2", 10000, connUrl, username, password);
+                        doUpdate("thread2", updates, connUrl, username, password);
                     } catch (Exception e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
@@ -122,8 +122,8 @@ public class Main {
         Connection con = DriverManager.getConnection(
                 connUrl, username, password);
         // con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-        con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
-        //con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        //con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+        con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
         // con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
 
         con.setAutoCommit(false);
@@ -134,13 +134,15 @@ public class Main {
             PreparedStatement stmt2 = con.prepareStatement("update t_counter set counter = counter+1 where name='name1'");
             for (int i = 0; i < times; ) {
             	try{
+            		
 	                stmt2.execute();
+	                // barrier.await();
 	                ResultSet rs = stmt.executeQuery();
 	                rs.next();
 	                long counter = rs.getLong("counter");
 	                rs.close();
 	                // System.out.println(threadname + ", counter: " + counter);
-	                // barrier.await();
+	               
 	                
 	
 	                con.commit();
