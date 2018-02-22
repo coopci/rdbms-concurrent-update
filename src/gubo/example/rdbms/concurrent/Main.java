@@ -5,24 +5,25 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
 public class Main {
 
-    public static String createTable = "CREATE TABLE `t_counter` (\n" +
-            "  `id` bigint(11) NOT NULL,\n" +
-            "  `name` varchar(45) NOT NULL,\n" +
-            "  `counter` bigint(11) DEFAULT NULL,\n" +
-            "  PRIMARY KEY (`id`),\n" +
-            "  UNIQUE KEY `idx_t_counter_name` (`name`)\n" +
-            ") ENGINE=InnoDB DEFAULT CHARSET=utf8";
+    public static String createTable = "CREATE TABLE `t_counter` (\r\n" + 
+    		"   `id` bigint(11) NOT NULL AUTO_INCREMENT,\r\n" + 
+    		"   `name` varchar(45) NOT NULL,\r\n" + 
+    		"   `counter` bigint(11) NOT NULL DEFAULT 0,\r\n" + 
+    		"   PRIMARY KEY (`id`),\r\n" + 
+    		"   UNIQUE KEY `idx_t_counter_name` (`name`)\r\n" + 
+    		" ) ENGINE=InnoDB DEFAULT CHARSET=utf8";
 
     // insert into t_counter(`name`, counter) values ('name1', 1);
 
 
     public static void runTest(String drivername, String connUrl, String username, String password) throws SQLException {
-
+    	Date start  = new Date();
         try {
             Class.forName(drivername);
             clear(connUrl, username, password);
@@ -33,7 +34,6 @@ public class Main {
                     try {
                         doUpdate("thread1", 10000, connUrl, username, password);
                     } catch (Exception e) {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
                 }
@@ -65,7 +65,9 @@ public class Main {
             System.out.println(e);
         }
         report(connUrl, username, password);
-
+        Date end  = new Date();
+        
+        System.out.println("millisesonds ellapsed: " + (end.getTime() - start.getTime()));
     }
 
     static CyclicBarrier barrier = new CyclicBarrier(2);
@@ -103,7 +105,7 @@ public class Main {
         con.setAutoCommit(false);
         try {
 
-            PreparedStatement stmt = con.prepareStatement("update t_counter set counter = 0 where `name`='name1'");
+            PreparedStatement stmt = con.prepareStatement("update t_counter set counter = 0 where name='name1'");
             stmt.execute();
             con.commit();
 
@@ -119,28 +121,41 @@ public class Main {
 
         Connection con = DriverManager.getConnection(
                 connUrl, username, password);
-        //con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-        //con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
-        // con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-        con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+        // con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+        con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+        //con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        // con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
 
         con.setAutoCommit(false);
         try {
-            PreparedStatement stmt = con.prepareStatement("select * from t_counter where `name`='name1'");
+        	
+            PreparedStatement stmt = con.prepareStatement("select * from t_counter where name='name1'");
 
-            PreparedStatement stmt2 = con.prepareStatement("update t_counter set counter = counter+1 where `name`='name1'");
-            for (int i = 0; i < times; ++i) {
-
-                stmt2.execute();
-                ResultSet rs = stmt.executeQuery();
-                rs.next();
-                long counter = rs.getLong("counter");
-                rs.close();
-                // barrier.await();
-                System.out.println(threadname + ", counter: " + counter);
-
-                con.commit();
-
+            PreparedStatement stmt2 = con.prepareStatement("update t_counter set counter = counter+1 where name='name1'");
+            for (int i = 0; i < times; ) {
+            	try{
+	                stmt2.execute();
+	                ResultSet rs = stmt.executeQuery();
+	                rs.next();
+	                long counter = rs.getLong("counter");
+	                rs.close();
+	                // System.out.println(threadname + ", counter: " + counter);
+	                // barrier.await();
+	                
+	
+	                con.commit();
+	            } catch (org.postgresql.util.PSQLException ex) {
+	            	// System.out.println("ex.getSQLState(): " + ex.getSQLState());
+	            	if(ex.getSQLState().equals("40001") ) {
+	            		// retry
+	            		con.rollback();
+	            		continue;
+	            	} else {
+	            		throw ex;
+	            	}
+                	
+                }
+            	++i;
             }
         } finally {
             con.close();
