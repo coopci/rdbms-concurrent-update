@@ -1,4 +1,4 @@
-package gubo.example.mysql.concurrent;
+package gubo.example.rdbms.concurrent;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
