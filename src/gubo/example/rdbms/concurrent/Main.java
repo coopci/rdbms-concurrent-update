@@ -31,7 +31,7 @@ public class Main {
                 @Override
                 public void run() {
                     try {
-                        doUpdate("thread1", 1000, connUrl, username, password);
+                        doUpdate("thread1", 10000, connUrl, username, password);
                     } catch (Exception e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
@@ -45,7 +45,7 @@ public class Main {
                 @Override
                 public void run() {
                     try {
-                        doUpdate("thread2", 1000, connUrl, username, password);
+                        doUpdate("thread2", 10000, connUrl, username, password);
                     } catch (Exception e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
@@ -72,10 +72,6 @@ public class Main {
 
 
     public static void main(String args[]) throws SQLException {
-        runTest("com.mysql.jdbc.Driver",
-
-                "jdbc:mysql://localhost:3306/test", "root", "");
-
     }
 
 
@@ -95,8 +91,6 @@ public class Main {
                 System.out.println(name + ": " + counter);
 
             }
-            con.commit();
-
         } finally {
             con.close();
         }
@@ -125,9 +119,10 @@ public class Main {
 
         Connection con = DriverManager.getConnection(
                 connUrl, username, password);
-        con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+        //con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+        //con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
         // con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-        // con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+        con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
 
         con.setAutoCommit(false);
         try {
@@ -141,7 +136,7 @@ public class Main {
                 rs.next();
                 long counter = rs.getLong("counter");
                 rs.close();
-                barrier.await();
+                // barrier.await();
                 System.out.println(threadname + ", counter: " + counter);
 
                 con.commit();
