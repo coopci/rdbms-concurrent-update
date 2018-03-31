@@ -6,23 +6,34 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 public class MysqlTest {
 
 	volatile static Object waitForStmt = new Object();
 	volatile static PreparedStatement theStmt;
 
-	public static void runTest(String drivername, String connUrl, String username, String password, final int updates)
-			throws SQLException, ClassNotFoundException, InterruptedException {
-
+	public static void runTest( javax.sql.DataSource ds) throws SQLException, InterruptedException {
+		waitForStmt = new Object();
+		theStmt = null;
+		
+		
+		try (Connection con = ds.getConnection()) {
+			runTest( con );	
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+	
+	public static void runTest(Connection con ) throws SQLException, InterruptedException {
 		try {
-			Class.forName(drivername);
 
 			Thread execThread = new Thread(new Runnable() {
 				@Override
 				public void run() {
 					try {
-
-						Connection con = DriverManager.getConnection(connUrl, username, password);
 						con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 						con.setAutoCommit(false);
 						PreparedStatement stmt = con.prepareStatement("SELECT SLEEP(20);");
@@ -41,7 +52,7 @@ public class MysqlTest {
 
 						con.commit();
 					} catch (com.mysql.jdbc.exceptions.MySQLStatementCancelledException e) {
-						System.out.println("Yeah! Query is cancelled! ");
+						System.err.println("Yeah! Query is cancelled! ");
 
 					} catch (Exception e) {
 						e.printStackTrace();
@@ -75,9 +86,51 @@ public class MysqlTest {
 		} finally {
 
 		}
+		
 	}
-
+	
+	
+	
+	
+	static final String url = "jdbc:mysql://localhost:3306/test";
+	static final String username = "root";
+	static final String password = "123qwe";
+	
+	
+	public static HikariDataSource makeNewHikariDataSource() {
+		HikariConfig config = new HikariConfig();
+    	config.setJdbcUrl(url);
+    	config.setUsername(username);
+    	config.setPassword(password);
+    	HikariDataSource ds = new HikariDataSource(config);
+    	return ds;
+	}
+	
+	public static MysqlDataSource makeNewMysqlDataSource() {
+		com.mysql.jdbc.jdbc2.optional.MysqlDataSource ds = new com.mysql.jdbc.jdbc2.optional.MysqlDataSource();
+		ds.setUrl(url);
+		ds.setUser(username);
+		ds.setPassword(password);
+    	return ds;
+	}
+	
 	public static void main(String args[]) throws SQLException, ClassNotFoundException, InterruptedException {
-		runTest("com.mysql.jdbc.Driver", "jdbc:mysql://localhost:3306/test", "root", "123qwe", 1000);
+		
+		
+		MysqlDataSource MysqlDS = makeNewMysqlDataSource();
+		
+		
+		System.err.println("Run on MysqlDS");
+		runTest(MysqlDS);
+		
+		
+		
+		System.err.println("Run on HikariDS");
+		HikariDataSource HikariDS = makeNewHikariDataSource();
+		runTest(HikariDS);
+		
+		
+		
+		
 	}
 }

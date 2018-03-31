@@ -5,5 +5,9 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="lib" path="lib/mysql-connector-java-5.1.34-bin.jar"/>
 	<classpathentry kind="lib" path="lib/postgresql-9.3-1101.jdbc4.jar"/>
+	<classpathentry kind="lib" path="lib/HikariCP-2.7.1.jar"/>
+	<classpathentry kind="lib" path="lib/logback-classic-1.2.3.jar"/>
+	<classpathentry kind="lib" path="lib/logback-core-1.2.3.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-api-1.7.25.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
